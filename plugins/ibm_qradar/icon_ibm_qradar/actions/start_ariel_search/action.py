@@ -49,7 +49,7 @@ class StartArielSearch(insightconnect_plugin_runtime.Action):
         auth = (self.connection.username, self.connection.password)
         headers = get_default_header()
         try:
-            response = requests.request(POST, basic_url, headers=headers, data={}, auth=auth, verify=False)
+            response = requests.request(POST, url=basic_url, headers=headers, data={}, auth=auth, verify=False)
         except requests.exceptions.ConnectionError:
             raise requests.exceptions.ConnectionError
 

@@ -6,7 +6,7 @@ from .schema import ConnectionSchema
 
 
 class Connection(insightconnect_plugin_runtime.Connection):
-    """Class to ahandle the connection."""
+    """Class to handle the connection."""
 
     def __init__(self):
         """Initialize the connection."""

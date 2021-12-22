@@ -1,8 +1,5 @@
 """Include util methods."""
 import json
-import logging
-
-import requests
 from insightconnect_plugin_runtime.exceptions import (
     ConnectionTestException,
     PluginException,
@@ -16,7 +13,7 @@ def get_default_header():
     return {"Accept": "application/json"}
 
 
-def handle_response(response: requests.Response):
+def handle_response(response):
     """
     To handles the http response.
 

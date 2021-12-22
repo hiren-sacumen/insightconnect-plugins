@@ -1,18 +1,19 @@
 """Test cases for action : start ariel search."""
-import json
-import logging
 import os
 import sys
+from unittest.mock import patch
+
 import requests
 from unittest import TestCase
 
 from insightconnect_plugin_runtime.exceptions import (
     PluginException,
     ClientException,
+    ConnectionTestException,
 )
 
 from icon_ibm_qradar.actions.start_ariel_search import StartArielSearch
-from icon_ibm_qradar.connection.connection import Connection
+from unit_test.helper import Helper
 
 sys.path.append(os.path.abspath("../"))
 
@@ -20,111 +21,73 @@ sys.path.append(os.path.abspath("../"))
 class TestStartArielSearch(TestCase):
     """Test case class for action : Start ariel search."""
 
-    def test_start_ariel_search(self):
-        """To test the areial search.
+    @classmethod
+    def setUpClass(cls) -> None:
+        """Set up an action for test."""
+        cls.action = Helper.default_connector(StartArielSearch())
+
+    @patch("requests.request", side_effect=Helper.mock_request)
+    def test_start_ariel_search(self, make_request):
+        """To test the ariel search.
 
         :return: None
         """
-        log = logging.getLogger("Test")
-        test_conn = Connection()
-        test_action = StartArielSearch()
+        action_params = {"AQL": "Select * from events"}
+        results = self.action.run(action_params)
 
-        test_conn.logger = log
-        test_action.logger = log
+        self.assertEqual(results.get("data")["cursor_id"], "test_cursor_id")
 
-        try:
-            with open("tests/start_ariel_search.json") as file:
-                test_json = json.loads(file.read()).get("body")
-                connection_params = test_json.get("connection")
-                action_params = test_json.get("input")
-        except FileNotFoundError:
-            message = "Could not find or read sample tests file or dir "
-            self.fail(message)
+    @patch("requests.request", side_effect=Helper.mock_request)
+    def test_start_ariel_search_wrong_hostname(self, make_request):
+        """To test the ariel search with wrong hostname.
 
-        test_conn.connect(connection_params)
-        test_action.connection = test_conn
-        results = test_action.run(action_params)
+        :return: None
+        """
+        action_params = {"AQL": "Select * from events"}
 
-        self.assertTrue(isinstance(results.get("data"), dict))
-        self.assertTrue(isinstance(results.get("data")["cursor_id"], str))
+        action = Helper.default_connector(
+            StartArielSearch(),
+            {"hostname": "wrong", "username": "username", "password": "password"},
+        )
 
-    def test_start_ariel_search_wrong_hostname(self):
+        with self.assertRaises(requests.exceptions.ConnectionError):
+            action.run(params=action_params)
+
+    @patch("requests.request", side_effect=Helper.mock_request)
+    def test_start_ariel_search_wrong_aql(self, make_request):
         """To test the ariel search with wrong aql.
 
         :return: None
         """
-        log = logging.getLogger("Test")
-        test_conn = Connection()
-        test_action = StartArielSearch()
-
-        test_conn.logger = log
-        test_action.logger = log
-
-        try:
-            with open("tests/start_ariel_search_with_wrong_aql.json") as file:
-                test_json = json.loads(file.read()).get("body")
-                connection_params = test_json.get("connection")
-                action_params = test_json.get("input")
-        except FileNotFoundError:
-            message = "Could not find or read sample tests file or dir "
-            self.fail(message)
-
-        test_conn.connect(connection_params)
-        test_action.connection = test_conn
+        action_params = {"AQL": "wrong"}
 
         with self.assertRaises(PluginException):
-            test_action.run(action_params)
+            self.action.run(params=action_params)
 
-    def test_start_ariel_search_wrong_aql(self):
-        """To test the ariel search with wrong host.
-
-        :return: None
-        """
-        log = logging.getLogger("Test")
-        test_conn = Connection()
-        test_action = StartArielSearch()
-
-        test_conn.logger = log
-        test_action.logger = log
-
-        try:
-            with open("tests/start_ariel_search_with_wrong_hostname.json") as file:
-                test_json = json.loads(file.read()).get("body")
-                connection_params = test_json.get("connection")
-                action_params = test_json.get("input")
-        except FileNotFoundError:
-            message = "Could not find or read sample tests file or dir "
-            self.fail(message)
-
-        test_conn.connect(connection_params)
-        test_action.connection = test_conn
-
-        with self.assertRaises(requests.exceptions.ConnectionError):
-            test_action.run(action_params)
-
-    def test_start_ariel_search_empty_aql(self):
-        """To test the ariel search with wrong host.
+    @patch("requests.request", side_effect=Helper.mock_request)
+    def test_start_ariel_search_empty_aql(self, make_request):
+        """To test the ariel search with empty aql.
 
         :return: None
         """
-        log = logging.getLogger("Test")
-        test_conn = Connection()
-        test_action = StartArielSearch()
-
-        test_conn.logger = log
-        test_action.logger = log
-
-        try:
-            with open("tests/start_ariel_search_with_empty_aql.json") as file:
-                test_json = json.loads(file.read()).get("body")
-                connection_params = test_json.get("connection")
-                action_params = test_json.get("input")
-        except FileNotFoundError:
-            message = "Could not find or read sample tests file or dir "
-            self.fail(message)
-
-        test_conn.connect(connection_params)
-        test_action.connection = test_conn
+        action_params = {"AQL": ""}
 
         with self.assertRaises(ClientException):
-            test_action.run(action_params)
+            self.action.run(params=action_params)
+
+    @patch("requests.request", side_effect=Helper.mock_request)
+    def test_start_ariel_search_wrong_username(self, make_request):
+        """To test the ariel search with wrong username.
+
+        :return: None
+        """
+        action_params = {"AQL": "Select * from events"}
+
+        action = Helper.default_connector(
+            StartArielSearch(),
+            {"hostname": "hostname", "username": "wrong", "password": "password"},
+        )
+
+        with self.assertRaises(ConnectionTestException) as err:
+            action.run(params=action_params)
+            self.assertEqual(ConnectionTestException.Preset.USERNAME_PASSWORD, err.exception.preset)
